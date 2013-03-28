@@ -5,7 +5,7 @@
 # This code is available under the MIT License.
 # (c)2013 Nakatani Shuyo / Cybozu Labs Inc.
 
-import random
+import sys, random
 
 koma = [
     "OR",       # white (red)
@@ -202,7 +202,7 @@ class Greedy(PlayerBase):
         stones, whites = availableplaces(self.board, self.myside)
         if len(stones)==0 and len(whites)==0:
             return "PASS", None, None
-        best = -36, None, None
+        best = -sys.maxint, None, None
         for pos in stones:
             board = self.board[:]
             putstone(board, self.myside, pos)
@@ -227,7 +227,7 @@ class MinMax(PlayerBase):
         stones, whites = availableplaces(self.board, self.myside)
         if len(stones)==0 and len(whites)==0:
             return "PASS", None, None
-        best = -99, None, None
+        best = -sys.maxint, None, None
         for pos in stones:
             board = self.board[:]
             putstone(board, self.myside, pos)
@@ -248,7 +248,7 @@ class MinMax(PlayerBase):
 
     def estimateOpponent(self, next_board):
         stones, whites = availableplaces(next_board, self.opponent)
-        worst = 99
+        worst = sys.maxint
         for pos in stones:
             board = next_board[:]
             putstone(board, self.opponent, pos)
