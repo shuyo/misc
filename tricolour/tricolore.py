@@ -238,7 +238,7 @@ class MinMax(PlayerBase):
             putstone(board, self.myside, pos)
             sc, bl = score(board, self.myside, self.opponent)
             if sc[1]==0: return self.move_return(pos, True)
-            worst = self.estimateOpponent(board)
+            worst = self.estimateOpponent(board, best[0])
             if pos in corners: worst += self.corner_bonus
             worst += self.color_bonus
             if worst > best[0]:
@@ -248,13 +248,13 @@ class MinMax(PlayerBase):
             putstoneW(board, self.myside, pos)
             sc, bl = score(board, self.myside, self.opponent)
             if sc[1]==0: return self.move_return(pos, False)
-            worst = self.estimateOpponent(board)
+            worst = self.estimateOpponent(board, best[0])
             if pos in corners: worst += self.corner_bonus
             if worst > best[0]:
                 best = (worst, pos, False)
         return self.move_return(best[1], best[2])
 
-    def estimateOpponent(self, next_board):
+    def estimateOpponent(self, next_board, current_worst):
         stones, whites = availableplaces(next_board, self.opponent)
         worst = sys.maxint
         for pos in stones:
@@ -265,6 +265,7 @@ class MinMax(PlayerBase):
             if sc[0]==0: s-=999
             if s < worst:
                 worst = s
+            if worst < current_worst: return worst
         for pos in whites:
             board = next_board[:]
             putstoneW(board, self.opponent, pos)
@@ -273,6 +274,7 @@ class MinMax(PlayerBase):
             if sc[0]==0: s-=999
             if s < worst:
                 worst = s
+            if worst < current_worst: return worst
         return worst
 
 
