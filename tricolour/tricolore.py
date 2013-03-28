@@ -311,7 +311,7 @@ def match(players, output=None):
                         print "draw!"
                 return sc
     except Exception, e:
-        print "\n[Threw Exception when %s puts %s at (%d,%d) probably]" % (SIDE, col, pos[0], pos[1])
+        print "\n[Threw Exception when %s puts %s at %s probably]" % (SIDE, col, pos)
         printboard(board)
         raise
 
