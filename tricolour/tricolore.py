@@ -262,42 +262,47 @@ def match(players, output=None):
     board = initboard()
     if output==True: printboard(board)
 
-    turn = 0
-    passed = 0
-    while True:
-        side, SIDE, player = players[turn]
+    try:
+        turn = 0
+        passed = 0
+        while True:
+            side, SIDE, player = players[turn]
 
-        command, pos, col = player.nextmove()
+            command, pos, col = player.nextmove()
 
-        turn = 1 - turn
+            turn = 1 - turn
 
-        if command == "PASS":
-            if output==True: print SIDE + " passes"
-            passed += 1
-        else:
-            pos = tuple2pos(pos)
-            passed = 0
-            if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
-            if col == "WHITE":
-                putstoneW(board, side, pos)
+            if command == "PASS":
+                if output==True: print SIDE + " passes"
+                passed += 1
             else:
-                putstone(board, side, pos)
-            players[turn][2].move(pos2tuple(pos), col)
-
-        sc, bl = score(board)
-        if output==True:
-            printboard(board)
-            print "score:", sc
-
-        if bl == 0 or passed >= 2 or sc[0] * sc[1] == 0:
-            if output!=None:
-                if sc[0] > sc[1]:
-                    print "RED won!", sc
-                elif sc[0] < sc[1]:
-                    print "BLUE won!", sc
+                pos = tuple2pos(pos)
+                passed = 0
+                if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
+                if col == "WHITE":
+                    putstoneW(board, side, pos)
                 else:
-                    print "draw!"
-            return sc
+                    putstone(board, side, pos)
+                players[turn][2].move(pos2tuple(pos), col)
+
+            sc, bl = score(board)
+            if output==True:
+                printboard(board)
+                print "score:", sc
+
+            if bl == 0 or passed >= 2 or sc[0] * sc[1] == 0:
+                if output!=None:
+                    if sc[0] > sc[1]:
+                        print "RED won!", sc
+                    elif sc[0] < sc[1]:
+                        print "BLUE won!", sc
+                    else:
+                        print "draw!"
+                return sc
+    except Exception, e:
+        print "\n[Exception] ", e
+        printboard(board)
+        raise
 
 def statistics(player1, player2, N=100):
     red = blue = draw = 0
@@ -313,15 +318,21 @@ def statistics(player1, player2, N=100):
     return (red, blue, draw)
 
 if __name__ == '__main__':
-    playerlist = [RandomPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
+    import nishio
+
+    players = (RED, "RED", MinMax("RED")), (BLUE, "BLUE", nishio.MontecarloPlayer("BLUE"))
+    sc = match(players, True)
+
+    import sys
+    sys.exit()
+    
+    playerlist = [RandomPlayer, nishio.MontecarloPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
     L = len(playerlist)
     for i in xrange(L):
         player1 = playerlist[i]
         for j in xrange(L):
             player2 = playerlist[j]
-            sc = statistics(player1, player2, 200)
+            sc = statistics(player1, player2, 2)
             z = sc[0]+sc[1]
             print "%s vs. %s : %s %.1f" % (player1.name, player2.name, sc, sc[0] / float(sc[0]+sc[1]) * 100 if z > 0 else 0)
 
-    #players = (RED, "RED", Greedy(RED)), (BLUE, "BLUE", MinMax(BLUE))
-    #sc = match(players, True)
