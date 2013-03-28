@@ -65,12 +65,10 @@ def isAvailableW(board, pos):
     for d in directions:
         i = pos + d
         x = board[i]
-        #if pos==19: print pos, d, i, x
         if x != RED and x != BLUE: continue
         while True:
             i += d
             x = board[i]
-            #if pos==19: print pos, d, i, x
             if x <= W_BLUE: return True
             if x >= BLANK: break
     return False
@@ -281,9 +279,9 @@ def match(players, output=None):
                 if output==True: print SIDE + " passes"
                 passed += 1
             else:
+                if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos[0], pos[1])
                 pos = tuple2pos(pos)
                 passed = 0
-                if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
                 if col == "WHITE":
                     putstoneW(board, side, pos)
                 else:
