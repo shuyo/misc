@@ -125,31 +125,64 @@ def score(board):
     return red, blue
 
 
-# ----
+class Player(object):
+    def __init__(self, side):
+        pass
+    def move(self, pos, color):
+        pass
+    def nextmove(self):
+        pass
 
-if __name__ == '__main__':
+class RandomPlayer(Player):
+    def __init__(self, side):
+        self.board = initboard()
+        self.myside = side
+        self.opponent = RED + BLUE - side
+        self.mycolor = "RED" if side == RED else "BLUE"
+
+    def move(self, pos, color):
+        if color == "WHITE":
+            putstoneW(self.board, self.opponent, pos)
+        else:
+            putstone(self.board, self.opponent, pos)
+
+    def nextmove(self):
+        stones, whites = availableplaces(self.board, self.myside)
+
+        list = [(x, True) for x in stones] + [(x, False) for x in whites]
+        if len(list)==0:
+            return "PASS", None, None
+
+        pos, col = random.choice(list)
+        if col:
+            putstone(self.board, self.myside, pos)
+            return "MOVE", pos, self.mycolor
+        else:
+            putstoneW(self.board, self.myside, pos)
+            return "MOVE", pos, "WHITE"
+
+
+def match(players):
     board = initboard()
     printboard(board)
 
-    side = RED
+    turn = 0
     while True:
-        SIDE = ("RED" if side == RED else "BLUE")
+        side, SIDE, player = players[turn]
 
-        stones, whites = availableplaces(board, side)
-        #print stones, whites
-        list = [(x, 0) for x in stones] + [(x, 1) for x in whites]
-        if len(list)==0:
+        command, pos, col = player.nextmove()
+
+        turn = 1 - turn
+
+        if command == "PASS":
             print SIDE + " passes"
-
-        pos, col = random.choice(list)
-        if col == 0:
-            print "%s puts %s at %d" % (SIDE, SIDE, pos)
-            putstone(board, side, pos)
         else:
-            print "%s puts WHITE at %d" % (SIDE, pos)
-            putstoneW(board, side, pos)
-
-        side = RED + BLUE - side
+            print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
+            if col == "WHITE":
+                putstoneW(board, side, pos)
+            else:
+                putstone(board, side, pos)
+            players[turn][2].move(pos, col)
 
         sc = score(board)
         printboard(board)
@@ -164,3 +197,8 @@ if __name__ == '__main__':
         if sc[1]==0:
             print "RED won!"
             break
+
+if __name__ == '__main__':
+    players = ((RED, "RED", RandomPlayer(RED)), (BLUE, "BLUE", RandomPlayer(BLUE)))
+    match(players)
+
