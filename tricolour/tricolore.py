@@ -19,6 +19,13 @@ GUARD = 5
 
 directions = [-8,-7,-6,-1,1,6,7,8]
 
+def pos2tuple(pos):
+    return (pos / 7 - 1, pos % 7 - 1)
+
+def tuple2pos(t):
+    y, x = t
+    return y * 7 + x + 8
+
 def initboard():
     board = [BLANK for i in xrange(57)]
     for i in xrange(7):
@@ -125,16 +132,16 @@ def score(board, k1=RED, k2=BLUE):
         elif x == BLANK: blank += 1
     return (red, blue), blank
 
-
 class PlayerBase(object):
     name = "*dummy*"
     def __init__(self, side):
         self.board = initboard()
-        self.myside = side
-        self.opponent = RED + BLUE - side
-        self.mycolor = "RED" if side == RED else "BLUE"
+        self.myside = RED if side == "RED" else BLUE
+        self.opponent = RED + BLUE - self.myside
+        self.mycolor = side
 
     def move(self, pos, color):
+        pos = tuple2pos(pos)
         if color == "WHITE":
             putstoneW(self.board, self.opponent, pos)
         else:
@@ -146,10 +153,10 @@ class PlayerBase(object):
     def move_return(self, pos, col):
         if col:
             putstone(self.board, self.myside, pos)
-            return "MOVE", pos, self.mycolor
+            return "MOVE", pos2tuple(pos), self.mycolor
         else:
             putstoneW(self.board, self.myside, pos)
-            return "MOVE", pos, "WHITE"
+            return "MOVE", pos2tuple(pos), "WHITE"
 
 class RandomPlayer(PlayerBase):
     name = "Random"
@@ -208,12 +215,6 @@ class Greedy(PlayerBase):
             if s > best[0]:
                 best = (s, pos, False)
         return self.move_return(best[1], best[2])
-
-
-        list = [(x, True) for x in stones] + [(x, True) for x in stones] + [(x, False) for x in whites]
-        if len(list)==0:
-            return "PASS", None, None
-        return self.move_return(*random.choice(list))
 
 class MinMax(PlayerBase):
     name = "MinMax"
@@ -274,13 +275,14 @@ def match(players, output=None):
             if output==True: print SIDE + " passes"
             passed += 1
         else:
+            pos = tuple2pos(pos)
             passed = 0
             if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
             if col == "WHITE":
                 putstoneW(board, side, pos)
             else:
                 putstone(board, side, pos)
-            players[turn][2].move(pos, col)
+            players[turn][2].move(pos2tuple(pos), col)
 
         sc, bl = score(board)
         if output==True:
@@ -300,7 +302,7 @@ def match(players, output=None):
 def statistics(player1, player2, N=100):
     red = blue = draw = 0
     for n in xrange(N):
-        players = (RED, "RED", player1(RED)), (BLUE, "BLUE", player2(BLUE))
+        players = (RED, "RED", player1("RED")), (BLUE, "BLUE", player2("BLUE"))
         sc = match(players)
         if sc[0] > sc[1]:
             red += 1
