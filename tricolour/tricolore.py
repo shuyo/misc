@@ -76,7 +76,7 @@ def isAvailableW(board, pos):
 def availableplaces(board, stone):
     stones = []
     whites = []
-    for pos in xrange(8, 48):
+    for pos in xrange(8, 49):
         if board[pos] != BLANK: continue
         if isAvailable(board, stone, pos):
             stones.append(pos)
@@ -128,7 +128,7 @@ def putstoneW(board, stone, pos):
 
 def score(board, k1=RED, k2=BLUE):
     red = blue = blank = 0
-    for pos in xrange(8, 48):
+    for pos in xrange(8, 49):
         x = board[pos]
         if x == k1: red += 1
         elif x == k2: blue += 1
@@ -175,7 +175,7 @@ class RandomPlayer2(PlayerBase):
     name = "Random(not leave 1)"
     def nextmove(self):
         count = 0
-        for pos in xrange(8, 48):
+        for pos in xrange(8, 49):
             if self.board[pos] == self.myside: count += 1
 
         stones, whites = availableplaces(self.board, self.myside)
