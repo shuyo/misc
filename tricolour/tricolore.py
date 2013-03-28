@@ -116,24 +116,18 @@ def putstoneW(board, stone, pos):
     if not turned: raise Exception("cannot turn any discs at the position")
     board[pos] = stone ^ 2
 
-def score(board):
-    red = blue = 0
+def score(board, k1=RED, k2=BLUE):
+    red = blue = blank = 0
     for pos in xrange(8, 48):
         x = board[pos]
-        if x == RED: red += 1
-        if x == BLUE: blue += 1
-    return red, blue
+        if x == k1: red += 1
+        elif x == k2: blue += 1
+        elif x == BLANK: blank += 1
+    return (red, blue), blank
 
 
-class Player(object):
-    def __init__(self, side):
-        pass
-    def move(self, pos, color):
-        pass
-    def nextmove(self):
-        pass
-
-class RandomPlayer(Player):
+class PlayerBase(object):
+    name = "*dummy*"
     def __init__(self, side):
         self.board = initboard()
         self.myside = side
@@ -147,13 +141,9 @@ class RandomPlayer(Player):
             putstone(self.board, self.opponent, pos)
 
     def nextmove(self):
-        stones, whites = availableplaces(self.board, self.myside)
+        pass
 
-        list = [(x, True) for x in stones] + [(x, False) for x in whites]
-        if len(list)==0:
-            return "PASS", None, None
-
-        pos, col = random.choice(list)
+    def move_return(self, pos, col):
         if col:
             putstone(self.board, self.myside, pos)
             return "MOVE", pos, self.mycolor
@@ -161,12 +151,118 @@ class RandomPlayer(Player):
             putstoneW(self.board, self.myside, pos)
             return "MOVE", pos, "WHITE"
 
+class RandomPlayer(PlayerBase):
+    name = "Random"
+    def nextmove(self):
+        stones, whites = availableplaces(self.board, self.myside)
 
-def match(players):
+        list = [(x, True) for x in stones] + [(x, False) for x in whites]
+        if len(list)==0:
+            return "PASS", None, None
+        return self.move_return(*random.choice(list))
+
+class RandomPlayer2(PlayerBase):
+    name = "Random(not leave 1)"
+    def nextmove(self):
+        count = 0
+        for pos in xrange(8, 48):
+            if self.board[pos] == self.myside: count += 1
+
+        stones, whites = availableplaces(self.board, self.myside)
+
+        list = [(x, True) for x in stones]
+        if len(list)==0 or count > 1: list += [(x, False) for x in whites]
+        if len(list)==0:
+            return "PASS", None, None
+        return self.move_return(*random.choice(list))
+
+class RandomPlayer3(PlayerBase):
+    name = "Random(weight to color)"
+    def nextmove(self):
+        stones, whites = availableplaces(self.board, self.myside)
+
+        list = [(x, True) for x in stones] + [(x, True) for x in stones] + [(x, False) for x in whites]
+        if len(list)==0:
+            return "PASS", None, None
+        return self.move_return(*random.choice(list))
+
+class Greedy(PlayerBase):
+    name = "Greedy"
+    def nextmove(self):
+        stones, whites = availableplaces(self.board, self.myside)
+        if len(stones)==0 and len(whites)==0:
+            return "PASS", None, None
+        best = -36, None, None
+        for pos in stones:
+            board = self.board[:]
+            putstone(board, self.myside, pos)
+            sc, bl = score(board, self.myside, self.opponent)
+            s = sc[0]-sc[1]
+            if s > best[0]:
+                best = (s, pos, True)
+        for pos in whites:
+            board = self.board[:]
+            putstoneW(board, self.myside, pos)
+            sc, bl = score(board, self.myside, self.opponent)
+            s = sc[0]-sc[1]
+            if s > best[0]:
+                best = (s, pos, False)
+        return self.move_return(best[1], best[2])
+
+
+        list = [(x, True) for x in stones] + [(x, True) for x in stones] + [(x, False) for x in whites]
+        if len(list)==0:
+            return "PASS", None, None
+        return self.move_return(*random.choice(list))
+
+class MinMax(PlayerBase):
+    name = "MinMax"
+    def nextmove(self):
+        stones, whites = availableplaces(self.board, self.myside)
+        if len(stones)==0 and len(whites)==0:
+            return "PASS", None, None
+        best = -99, None, None
+        for pos in stones:
+            board = self.board[:]
+            putstone(board, self.myside, pos)
+            worst = self.estimateOpponent(board)
+            if worst > best[0]:
+                best = (worst, pos, True)
+        for pos in whites:
+            board = self.board[:]
+            putstoneW(board, self.myside, pos)
+            worst = self.estimateOpponent(board)
+            if worst > best[0]:
+                best = (worst, pos, False)
+        return self.move_return(best[1], best[2])
+
+    def estimateOpponent(self, next_board):
+        stones, whites = availableplaces(next_board, self.opponent)
+        worst = 99
+        for pos in stones:
+            board = next_board[:]
+            putstone(board, self.opponent, pos)
+            sc, bl = score(board, self.myside, self.opponent)
+            s = sc[0] - sc[1]
+            if s < worst:
+                worst = s
+        for pos in whites:
+            board = next_board[:]
+            putstoneW(board, self.opponent, pos)
+            sc, bl = score(board, self.myside, self.opponent)
+            s = sc[0]-sc[1]
+            if s < worst:
+                worst = s
+        return worst
+
+
+
+def match(players, output=None):
     board = initboard()
-    printboard(board)
+    if output==True: printboard(board)
 
     turn = 0
+    passed = 0
     while True:
         side, SIDE, player = players[turn]
 
@@ -175,30 +271,55 @@ def match(players):
         turn = 1 - turn
 
         if command == "PASS":
-            print SIDE + " passes"
+            if output==True: print SIDE + " passes"
+            passed += 1
         else:
-            print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
+            passed = 0
+            if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos / 7, pos % 7)
             if col == "WHITE":
                 putstoneW(board, side, pos)
             else:
                 putstone(board, side, pos)
             players[turn][2].move(pos, col)
 
-        sc = score(board)
-        printboard(board)
-        print "score:", sc
+        sc, bl = score(board)
+        if output==True:
+            printboard(board)
+            print "score:", sc
 
-        if sc[0]==0:
-            if sc[1]==0:
-                print "draw!"
-                break
-            print "BLUE won!"
-            break
-        if sc[1]==0:
-            print "RED won!"
-            break
+        if bl == 0 or passed >= 2 or sc[0] * sc[1] == 0:
+            if output!=None:
+                if sc[0] > sc[1]:
+                    print "RED won!", sc
+                elif sc[0] < sc[1]:
+                    print "BLUE won!", sc
+                else:
+                    print "draw!"
+            return sc
+
+def statistics(player1, player2, N=100):
+    red = blue = draw = 0
+    for n in xrange(N):
+        players = (RED, "RED", player1(RED)), (BLUE, "BLUE", player2(BLUE))
+        sc = match(players)
+        if sc[0] > sc[1]:
+            red += 1
+        elif sc[0] < sc[1]:
+            blue += 1
+        else:
+            draw += 1
+    return (red, blue, draw)
 
 if __name__ == '__main__':
-    players = ((RED, "RED", RandomPlayer(RED)), (BLUE, "BLUE", RandomPlayer(BLUE)))
-    match(players)
+    playerlist = [RandomPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
+    L = len(playerlist)
+    for i in xrange(L):
+        player1 = playerlist[i]
+        for j in xrange(L):
+            player2 = playerlist[j]
+            sc = statistics(player1, player2, 200)
+            z = sc[0]+sc[1]
+            print "%s vs. %s : %s %.1f" % (player1.name, player2.name, sc, sc[0] / float(sc[0]+sc[1]) * 100 if z > 0 else 0)
 
+    #players = (RED, "RED", Greedy(RED)), (BLUE, "BLUE", MinMax(BLUE))
+    #sc = match(players, True)
