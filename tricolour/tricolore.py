@@ -17,24 +17,24 @@ BLUE  = 3
 BLANK = 4
 GUARD = 5
 
-directions = [-9,-8,-7,-1,1,7,8,9]
+directions = [-8,-7,-6,-1,1,6,7,8]
 
 def initboard():
-    board = [BLANK for i in xrange(64)]
-    for i in xrange(8):
-        board[i] = board[7*8+i] = GUARD
-        board[i*8] = board[i*8+7] = GUARD
+    board = [BLANK for i in xrange(57)]
+    for i in xrange(7):
+        board[i] = board[50+i] = GUARD
+        board[i*7] = GUARD
 
-    board[3*8+3]=board[4*8+4]=RED
-    board[3*8+4]=board[4*8+3]=BLUE
+    board[3*7+3]=board[4*7+4]=RED
+    board[3*7+4]=board[4*7+3]=BLUE
 
     return board
 
 def printboard(board):
-    line = ("+--"*8)+"+"
+    line = ("+--"*6)+"+"
     print line
-    for i in xrange(8):
-        print "|"+("|".join(koma[x] for x in board[i*8:i*8+8]))+"|"
+    for i in xrange(6):
+        print "|"+("|".join(koma[x] for x in board[i*7+8:i*7+14]))+"|"
         print line
 
 def isAvailable(board, stone, pos):
@@ -66,7 +66,7 @@ def isAvailableW(board, pos):
 def availableplaces(board, stone):
     stones = []
     whites = []
-    for pos in xrange(9, 55):
+    for pos in xrange(8, 48):
         if board[pos] != BLANK: continue
         if isAvailable(board, stone, pos):
             stones.append(pos)
@@ -118,7 +118,7 @@ def putstoneW(board, stone, pos):
 
 def score(board):
     red = blue = 0
-    for pos in xrange(9, 55):
+    for pos in xrange(8, 48):
         x = board[pos]
         if x == RED: red += 1
         if x == BLUE: blue += 1
@@ -127,36 +127,40 @@ def score(board):
 
 # ----
 
-board = initboard()
-printboard(board)
-
-side = RED
-while True:
-    SIDE = ("RED" if side == RED else "BLUE")
-
-    stones, whites = availableplaces(board, side)
-    #print stones, whites
-    list = [(x, 0) for x in stones] + [(x, 1) for x in whites]
-    if len(list)==0:
-        print SIDE + " passes"
-
-    pos, col = random.choice(list)
-    if col == 0:
-        print "%s puts %s at %d" % (SIDE, SIDE, pos)
-        putstone(board, side, pos)
-    else:
-        print "%s puts WHITE at %d" % (SIDE, pos)
-        putstoneW(board, side, pos)
-
-    side = RED + BLUE - side
-
-    sc = score(board)
+if __name__ == '__main__':
+    board = initboard()
     printboard(board)
-    print "score:", sc
 
-    if sc[0]==0:
-        print "BLUE won!"
-        break
-    if sc[1]==0:
-        print "RED won!"
-        break
+    side = RED
+    while True:
+        SIDE = ("RED" if side == RED else "BLUE")
+
+        stones, whites = availableplaces(board, side)
+        #print stones, whites
+        list = [(x, 0) for x in stones] + [(x, 1) for x in whites]
+        if len(list)==0:
+            print SIDE + " passes"
+
+        pos, col = random.choice(list)
+        if col == 0:
+            print "%s puts %s at %d" % (SIDE, SIDE, pos)
+            putstone(board, side, pos)
+        else:
+            print "%s puts WHITE at %d" % (SIDE, pos)
+            putstoneW(board, side, pos)
+
+        side = RED + BLUE - side
+
+        sc = score(board)
+        printboard(board)
+        print "score:", sc
+
+        if sc[0]==0:
+            if sc[1]==0:
+                print "draw!"
+                break
+            print "BLUE won!"
+            break
+        if sc[1]==0:
+            print "RED won!"
+            break
