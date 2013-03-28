@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Game Matcher and some Clients for Boardgame "TRICOLOUR"
+
+# This code is available under the MIT License.
+# (c)2013 Nakatani Shuyo / Cybozu Labs Inc.
+
 import random
 
 koma = [
@@ -318,14 +323,6 @@ def statistics(player1, player2, N=100):
     return (red, blue, draw)
 
 if __name__ == '__main__':
-    import nishio
-
-    players = (RED, "RED", MinMax("RED")), (BLUE, "BLUE", nishio.MontecarloPlayer("BLUE"))
-    sc = match(players, True)
-
-    import sys
-    sys.exit()
-    
     playerlist = [RandomPlayer, nishio.MontecarloPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
     L = len(playerlist)
     for i in xrange(L):
