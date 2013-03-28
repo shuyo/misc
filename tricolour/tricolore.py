@@ -208,6 +208,7 @@ class Greedy(PlayerBase):
             putstone(board, self.myside, pos)
             sc, bl = score(board, self.myside, self.opponent)
             s = sc[0]-sc[1]
+            if sc[1]==0: s+=999
             if s > best[0]:
                 best = (s, pos, True)
         for pos in whites:
@@ -215,6 +216,7 @@ class Greedy(PlayerBase):
             putstoneW(board, self.myside, pos)
             sc, bl = score(board, self.myside, self.opponent)
             s = sc[0]-sc[1]
+            if sc[1]==0: s+=999
             if s > best[0]:
                 best = (s, pos, False)
         return self.move_return(best[1], best[2])
@@ -229,12 +231,16 @@ class MinMax(PlayerBase):
         for pos in stones:
             board = self.board[:]
             putstone(board, self.myside, pos)
+            sc, bl = score(board, self.myside, self.opponent)
+            if sc[1]==0: return self.move_return(pos, True)
             worst = self.estimateOpponent(board)
             if worst > best[0]:
                 best = (worst, pos, True)
         for pos in whites:
             board = self.board[:]
             putstoneW(board, self.myside, pos)
+            sc, bl = score(board, self.myside, self.opponent)
+            if sc[1]==0: return self.move_return(pos, False)
             worst = self.estimateOpponent(board)
             if worst > best[0]:
                 best = (worst, pos, False)
@@ -307,11 +313,11 @@ def match(players, output=None):
         printboard(board)
         raise
 
-def statistics(player1, player2, N=100):
+def statistics(player1, player2, N=100, output=None):
     red = blue = draw = 0
     for n in xrange(N):
         players = (RED, "RED", player1("RED")), (BLUE, "BLUE", player2("BLUE"))
-        sc = match(players)
+        sc = match(players, output)
         if sc[0] > sc[1]:
             red += 1
         elif sc[0] < sc[1]:
@@ -321,13 +327,13 @@ def statistics(player1, player2, N=100):
     return (red, blue, draw)
 
 if __name__ == '__main__':
-    playerlist = [RandomPlayer, nishio.MontecarloPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
+    playerlist = [RandomPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
     L = len(playerlist)
     for i in xrange(L):
         player1 = playerlist[i]
         for j in xrange(L):
             player2 = playerlist[j]
-            sc = statistics(player1, player2, 2)
+            sc = statistics(player1, player2, 200)
             z = sc[0]+sc[1]
             print "%s vs. %s : %s %.1f" % (player1.name, player2.name, sc, sc[0] / float(sc[0]+sc[1]) * 100 if z > 0 else 0)
 
