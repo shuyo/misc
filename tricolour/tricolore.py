@@ -23,6 +23,7 @@ BLANK = 4
 GUARD = 5
 
 directions = [-8,-7,-6,-1,1,6,7,8]
+corners = set((8,13,43,48))
 
 def pos2tuple(pos):
     return (pos / 7 - 1, pos % 7 - 1)
@@ -223,6 +224,10 @@ class Greedy(PlayerBase):
 
 class MinMax(PlayerBase):
     name = "MinMax"
+    def __init__(self, side, corner_bonus=0.01, color_bonus=0.1):
+        PlayerBase.__init__(self, side)
+        self.corner_bonus = corner_bonus
+        self.color_bonus = color_bonus
     def nextmove(self):
         stones, whites = availableplaces(self.board, self.myside)
         if len(stones)==0 and len(whites)==0:
@@ -234,6 +239,8 @@ class MinMax(PlayerBase):
             sc, bl = score(board, self.myside, self.opponent)
             if sc[1]==0: return self.move_return(pos, True)
             worst = self.estimateOpponent(board)
+            if pos in corners: worst += self.corner_bonus
+            worst += self.color_bonus
             if worst > best[0]:
                 best = (worst, pos, True)
         for pos in whites:
@@ -242,6 +249,7 @@ class MinMax(PlayerBase):
             sc, bl = score(board, self.myside, self.opponent)
             if sc[1]==0: return self.move_return(pos, False)
             worst = self.estimateOpponent(board)
+            if pos in corners: worst += self.corner_bonus
             if worst > best[0]:
                 best = (worst, pos, False)
         return self.move_return(best[1], best[2])
