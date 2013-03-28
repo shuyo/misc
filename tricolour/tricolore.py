@@ -254,6 +254,7 @@ class MinMax(PlayerBase):
             putstone(board, self.opponent, pos)
             sc, bl = score(board, self.myside, self.opponent)
             s = sc[0] - sc[1]
+            if sc[0]==0: s-=999
             if s < worst:
                 worst = s
         for pos in whites:
@@ -261,6 +262,7 @@ class MinMax(PlayerBase):
             putstoneW(board, self.opponent, pos)
             sc, bl = score(board, self.myside, self.opponent)
             s = sc[0]-sc[1]
+            if sc[0]==0: s-=999
             if s < worst:
                 worst = s
         return worst
@@ -271,8 +273,8 @@ def match(players, output=None):
     board = initboard()
     if output==True: printboard(board)
 
+    turn = 0
     try:
-        turn = 0
         passed = 0
         while True:
             side, SIDE, player = players[turn]
@@ -286,13 +288,13 @@ def match(players, output=None):
                 passed += 1
             else:
                 if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos[0], pos[1])
-                pos = tuple2pos(pos)
+                addr = tuple2pos(pos)
                 passed = 0
                 if col == "WHITE":
-                    putstoneW(board, side, pos)
+                    putstoneW(board, side, addr)
                 else:
-                    putstone(board, side, pos)
-                players[turn][2].move(pos2tuple(pos), col)
+                    putstone(board, side, addr)
+                players[turn][2].move(pos, col)
 
             sc, bl = score(board)
             if output==True:
@@ -309,7 +311,7 @@ def match(players, output=None):
                         print "draw!"
                 return sc
     except Exception, e:
-        print "\n[Exception] ", e
+        print "\n[Threw Exception when %s puts %s at (%d,%d) probably]" % (SIDE, col, pos[0], pos[1])
         printboard(board)
         raise
 
@@ -324,6 +326,7 @@ def statistics(player1, player2, N=100, output=None):
             blue += 1
         else:
             draw += 1
+        if output: print "(red, blue, draw) =", (red, blue, draw)
     return (red, blue, draw)
 
 if __name__ == '__main__':
