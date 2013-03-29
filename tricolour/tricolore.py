@@ -24,6 +24,7 @@ GUARD = 5
 
 directions = [-8,-7,-6,-1,1,6,7,8]
 corners = set((8,13,43,48))
+nini = set((16,19,37,40))
 
 def pos2tuple(pos):
     return (pos / 7 - 1, pos % 7 - 1)
@@ -240,6 +241,7 @@ class MinMax(PlayerBase):
             if sc[1]==0: return self.move_return(pos, True)
             worst = self.estimateOpponent(board, best[0])
             if pos in corners: worst += self.corner_bonus
+            if pos in nini: worst -= self.corner_bonus
             worst += self.color_bonus
             if worst > best[0]:
                 best = (worst, pos, True)
@@ -250,6 +252,7 @@ class MinMax(PlayerBase):
             if sc[1]==0: return self.move_return(pos, False)
             worst = self.estimateOpponent(board, best[0])
             if pos in corners: worst += self.corner_bonus
+            if pos in nini: worst -= self.corner_bonus
             if worst > best[0]:
                 best = (worst, pos, False)
         return self.move_return(best[1], best[2])
