@@ -22,7 +22,8 @@ def tokey(side, pos, sc):
 
 
 board = initboard()
-#for i in xrange(6): board[8+i] = board[43+i] = board[8+i*7] = board[13+i*7] = GUARD
+#for i in range(6):
+#    board[8+i] = board[43+i] = board[8+i*7] = board[13+i*7] = GUARD
 
 tree = dict()
 pos = 18
@@ -61,7 +62,7 @@ count = [0] * MAXDEPTH
 def printtree(node, depth):
     if len(node)>0: count[depth] += len(node)
     for key in node:
-        print "\t" * depth, key
+        print("\t" * depth, key)
         printtree(node[key], depth+1)
 printtree(tree, 0)
-print count
+print(count)

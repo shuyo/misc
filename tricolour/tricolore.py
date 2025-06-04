@@ -27,15 +27,15 @@ corners = set((8,13,43,48))
 nini = set((16,19,37,40))
 
 def pos2tuple(pos):
-    return (pos / 7 - 1, pos % 7 - 1)
+    return (pos // 7 - 1, pos % 7 - 1)
 
 def tuple2pos(t):
     y, x = t
     return y * 7 + x + 8
 
 def initboard():
-    board = [BLANK for i in xrange(57)]
-    for i in xrange(7):
+    board = [BLANK for i in range(57)]
+    for i in range(7):
         board[i] = board[50+i] = GUARD
         board[i*7] = GUARD
 
@@ -46,10 +46,10 @@ def initboard():
 
 def printboard(board):
     line = ("+--"*6)+"+"
-    print line
-    for i in xrange(6):
-        print "|"+("|".join(koma[x] for x in board[i*7+8:i*7+14]))+"|"
-        print line
+    print(line)
+    for i in range(6):
+        print("|" + ("|".join(koma[x] for x in board[i*7+8:i*7+14])) + "|")
+        print(line)
 
 def isAvailable(board, stone, pos):
     for d in directions:
@@ -78,7 +78,7 @@ def isAvailableW(board, pos):
 def availableplaces(board, stone):
     stones = []
     whites = []
-    for pos in xrange(8, 49):
+    for pos in range(8, 49):
         if board[pos] != BLANK: continue
         if isAvailable(board, stone, pos):
             stones.append(pos)
@@ -130,7 +130,7 @@ def putstoneW(board, stone, pos):
 
 def score(board, k1=RED, k2=BLUE):
     red = blue = blank = 0
-    for pos in xrange(8, 49):
+    for pos in range(8, 49):
         x = board[pos]
         if x == k1: red += 1
         elif x == k2: blue += 1
@@ -177,7 +177,7 @@ class RandomPlayer2(PlayerBase):
     name = "Random(not leave 1)"
     def nextmove(self):
         count = 0
-        for pos in xrange(8, 49):
+        for pos in range(8, 49):
             if self.board[pos] == self.myside: count += 1
 
         stones, whites = availableplaces(self.board, self.myside)
@@ -204,7 +204,7 @@ class Greedy(PlayerBase):
         stones, whites = availableplaces(self.board, self.myside)
         if len(stones)==0 and len(whites)==0:
             return "PASS", None, None
-        best = -sys.maxint, None, None
+        best = -sys.maxsize, None, None
         for pos in stones:
             board = self.board[:]
             putstone(board, self.myside, pos)
@@ -233,7 +233,7 @@ class MinMax(PlayerBase):
         stones, whites = availableplaces(self.board, self.myside)
         if len(stones)==0 and len(whites)==0:
             return "PASS", None, None
-        best = -sys.maxint, None, None
+        best = -sys.maxsize, None, None
         for pos in stones:
             board = self.board[:]
             putstone(board, self.myside, pos)
@@ -259,7 +259,7 @@ class MinMax(PlayerBase):
 
     def estimateOpponent(self, next_board, current_worst):
         stones, whites = availableplaces(next_board, self.opponent)
-        worst = sys.maxint
+        worst = sys.maxsize
         for pos in stones:
             board = next_board[:]
             putstone(board, self.opponent, pos)
@@ -297,10 +297,12 @@ def match(players, output=None):
             turn = 1 - turn
 
             if command == "PASS":
-                if output==True: print SIDE + " passes"
+                if output==True:
+                    print(SIDE + " passes")
                 passed += 1
             else:
-                if output==True: print "%s puts %s at (%d,%d)" % (SIDE, col, pos[0], pos[1])
+                if output==True:
+                    print("%s puts %s at (%d,%d)" % (SIDE, col, pos[0], pos[1]))
                 addr = tuple2pos(pos)
                 passed = 0
                 if col == "WHITE":
@@ -312,25 +314,25 @@ def match(players, output=None):
             sc, bl = score(board)
             if output==True:
                 printboard(board)
-                print "score:", sc
+                print("score:", sc)
 
             if bl == 0 or passed >= 2 or sc[0] * sc[1] == 0:
                 if output!=None:
                     if sc[0] > sc[1]:
-                        print "RED won!", sc
+                        print("RED won!", sc)
                     elif sc[0] < sc[1]:
-                        print "BLUE won!", sc
+                        print("BLUE won!", sc)
                     else:
-                        print "draw!"
+                        print("draw!")
                 return sc
-    except Exception, e:
-        print "\n[Threw Exception when %s puts %s at %s probably]" % (SIDE, col, pos)
+    except Exception as e:
+        print("\n[Threw Exception when %s puts %s at %s probably]" % (SIDE, col, pos))
         printboard(board)
         raise
 
 def statistics(player1, player2, N=100, output=None):
     red = blue = draw = 0
-    for n in xrange(N):
+    for n in range(N):
         players = (RED, "RED", player1("RED")), (BLUE, "BLUE", player2("BLUE"))
         sc = match(players, output)
         if sc[0] > sc[1]:
@@ -339,17 +341,18 @@ def statistics(player1, player2, N=100, output=None):
             blue += 1
         else:
             draw += 1
-        if output: print "(red, blue, draw) =", (red, blue, draw)
+        if output:
+            print("(red, blue, draw) =", (red, blue, draw))
     return (red, blue, draw)
 
 if __name__ == '__main__':
     playerlist = [RandomPlayer, RandomPlayer2, RandomPlayer3, Greedy, MinMax]
     L = len(playerlist)
-    for i in xrange(L):
+    for i in range(L):
         player1 = playerlist[i]
-        for j in xrange(L):
+        for j in range(L):
             player2 = playerlist[j]
             sc = statistics(player1, player2, 200)
             z = sc[0]+sc[1]
-            print "%s vs. %s : %s %.1f" % (player1.name, player2.name, sc, sc[0] / float(sc[0]+sc[1]) * 100 if z > 0 else 0)
+            print("%s vs. %s : %s %.1f" % (player1.name, player2.name, sc, sc[0] / float(sc[0]+sc[1]) * 100 if z > 0 else 0))
 
