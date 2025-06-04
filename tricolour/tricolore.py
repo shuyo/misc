@@ -13,7 +13,7 @@ koma = [
     "RD",       # red
     "BL",       # blue
     "  ",       # blank
-    "XX"]       # gurd
+    "XX"]       # guard
 
 W_RED = 0
 W_BLUE= 1
