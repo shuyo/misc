@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Game Tree Search for Boardgame "TRICOLOUR"
 
