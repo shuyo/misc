@@ -37,7 +37,7 @@ with open(sys.argv[1], "rb") as f:
 def path1(node, depth):
     """judgement win or lose at leaf"""
     depth += 1
-    for key, nextnode in node.iteritems():
+    for key, nextnode in node.items():
         if key == "" or key == "parent": continue
         if len(nextnode) == 2: # at leaf
             c, y, x, r, b = key
@@ -51,7 +51,7 @@ def path1(node, depth):
 def path2(node, depth):
     depth += 1
     all_lose = True
-    for key, nextnode in node.iteritems():
+    for key, nextnode in node.items():
         if key == "" or key == "parent": continue
         if "lose" not in nextnode[""] and "to lose" not in nextnode[""]:
             all_lose = False
@@ -62,14 +62,14 @@ def path2(node, depth):
 
 def printtree(node, depth):
     depth += 1
-    for key, nextnode in node.iteritems():
+    for key, nextnode in node.items():
         if key == "" or key == "parent": continue
-        print "\t" * depth, "%s%d%d:%d-%d" % key, " ".join(nextnode[""])
+        print("\t" * depth, "%s%d%d:%d-%d" % key, " ".join(nextnode[""]))
         printtree(nextnode, depth)
 
 
 path1(tree, 0)
-for i in xrange(6):
+for i in range(6):
     path2(tree, 0)
 
 printtree(tree, 0)
