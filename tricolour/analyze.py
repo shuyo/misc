@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Complete Game Tree Analyzer for Boardgame "TRICOLOUR"
 
@@ -15,7 +15,7 @@ tree = dict()
 moves = [tree]
 maxdepth = 0
 #states = collections.defaultdict(int)
-with open(sys.argv[1], "rb") as f:
+with open(sys.argv[1], "r", encoding="utf-8") as f:
     for s in f:
         m = rm.search(s)
         if m:

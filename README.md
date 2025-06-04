@@ -1,7 +1,7 @@
 # TRICOLOUR Game Tools
 
 このリポジトリはボードゲーム「TRICOLOUR」を扱う小さな Python スクリプト集です。
-`tricolour/` ディレクトリの下に 3 つのスクリプトがあり、すべて Python 2 系で記述されています。
+`tricolour/` ディレクトリの下に 3 つのスクリプトがあり、Python 3 で動作します。
 
 ## ディレクトリ構成
 
@@ -33,20 +33,20 @@ tricolour/
   - `putstoneW` など "白石" 用の処理があり、通常の石とは反転の条件が異なります。
 - **AI クラス**
   - `RandomPlayer`, `RandomPlayer2`, `RandomPlayer3`, `Greedy`, `MinMax` などサンプル実装が用意されています。挙動を確認しながらカスタマイズすると全体像を掴みやすくなります。
-- **実装言語**
-  - すべて Python 2 系で書かれているため、必要に応じて Python 3 への移行を検討してください。
+  - **実装言語**
+  - Python 3 で書かれています。
 
 ## 使い方
 
 ```
 # 例: 対局を実行
-python tricolour/tricolore.py
+python3 tricolour/tricolore.py
 
 # 例: ゲーム木を深さ3で生成
-python tricolour/gametree.py 3
+python3 tricolour/gametree.py 3
 
 # 例: ログ解析
-python tricolour/analyze.py LOGFILE
+python3 tricolour/analyze.py LOGFILE
 ```
 
 ## 次のステップ
