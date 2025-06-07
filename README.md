@@ -1,7 +1,7 @@
 # TRICOLOUR Game Tools
 
 このリポジトリはボードゲーム「TRICOLOUR」を扱う小さな Python スクリプト集です。
-`tricolour/` ディレクトリの下に 3 つのスクリプトがあり、Python 3 で動作します。
+`tricolour/` ディレクトリの下に 4 つのスクリプトがあり、Python 3 で動作します。
 
 ## ディレクトリ構成
 
@@ -9,7 +9,8 @@
 tricolour/
 ├── analyze.py   # ゲームログ解析ツール
 ├── gametree.py  # ゲーム木生成ツール
-└── tricolore.py # 盤面・AI 実装メインモジュール
+├── tricolore.py # 盤面・AI 実装メインモジュール
+└── tkviewer.py  # GUI ビューワ
 ```
 
 ## 各スクリプト概要
@@ -24,6 +25,9 @@ tricolour/
 
 - **analyze.py**
   - ログを読み取り、正規表現で手をパースしながらゲーム木を辿り、勝敗を集計します。シンプルな再帰解析 (`path1`, `path2`) とツリー出力 (`printtree`) を行います。
+
+- **tkviewer.py**
+  - `match` 関数の表示コールバックを利用し、Tkinter で対局の様子をグラフィカルに表示します。
 
 ## 知っておくと良いポイント
 
@@ -47,6 +51,9 @@ python3 tricolour/gametree.py 3
 
 # 例: ログ解析
 python3 tricolour/analyze.py LOGFILE
+
+# 例: GUI で対局を観戦
+python3 tricolour/tkviewer.py
 ```
 
 ## 次のステップ

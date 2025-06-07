@@ -5,7 +5,7 @@
 # This code is available under the MIT License.
 # (c)2013 Nakatani Shuyo / Cybozu Labs Inc.
 
-import sys, random
+import sys, random, time
 
 koma = [
     "OR",       # white (red)
@@ -282,9 +282,14 @@ class MinMax(PlayerBase):
 
 
 
-def match(players, output=None):
+def match(players, output=None, display=None, delay=0.0):
     board = initboard()
-    if output==True: printboard(board)
+    if output==True:
+        printboard(board)
+    if display:
+        display(board)
+        if delay>0:
+            time.sleep(delay)
 
     turn = 0
     try:
@@ -315,6 +320,10 @@ def match(players, output=None):
             if output==True:
                 printboard(board)
                 print("score:", sc)
+            if display:
+                display(board)
+                if delay>0:
+                    time.sleep(delay)
 
             if bl == 0 or passed >= 2 or sc[0] * sc[1] == 0:
                 if output!=None:
