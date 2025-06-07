@@ -51,3 +51,17 @@ def test_putstoneW_flips_to_white():
     assert red == 1
     assert blue == 1
     assert blank == 30
+
+
+def test_match_display_callback():
+    boards = []
+
+    def record(board):
+        boards.append(board[:])
+
+    players = (
+        (tricolore.RED, "RED", tricolore.RandomPlayer("RED")),
+        (tricolore.BLUE, "BLUE", tricolore.RandomPlayer("BLUE")),
+    )
+    tricolore.match(players, output=False, display=record, delay=0)
+    assert len(boards) > 0
