@@ -38,51 +38,23 @@ type Gateway struct {
 }
 
 type endpointPolicy struct {
-	Path            string
-	AllowStream     bool
-	AllowExtraBody  bool
-	RequireModel    bool
-	AllowedFields   map[string]struct{}
-	UnsupportedText string
+	Path           string
+	AllowExtraBody bool
 }
 
 var endpointPolicies = map[string]endpointPolicy{
 	"chat_completions": {
 		Path:           "/v1/chat/completions",
-		AllowStream:    true,
 		AllowExtraBody: true,
-		RequireModel:   true,
-		AllowedFields: setOf(
-			"model", "messages", "stream", "temperature", "top_p", "max_tokens", "presence_penalty", "frequency_penalty", "stop", "n", "user", "extra_body",
-		),
-		UnsupportedText: "unsupported field for chat/completions",
 	},
 	"completions": {
-		Path:         "/v1/completions",
-		AllowStream:  true,
-		RequireModel: true,
-		AllowedFields: setOf(
-			"model", "prompt", "suffix", "max_tokens", "temperature", "top_p", "n", "stream", "logprobs", "echo", "stop", "presence_penalty", "frequency_penalty", "best_of", "logit_bias", "user",
-		),
-		UnsupportedText: "unsupported field for completions",
+		Path: "/v1/completions",
 	},
 	"embeddings": {
-		Path:         "/v1/embeddings",
-		AllowStream:  false,
-		RequireModel: true,
-		AllowedFields: setOf(
-			"model", "input", "encoding_format", "dimensions", "user",
-		),
-		UnsupportedText: "unsupported field for embeddings",
+		Path: "/v1/embeddings",
 	},
 	"rerank": {
-		Path:         "/v1/rerank",
-		AllowStream:  false,
-		RequireModel: true,
-		AllowedFields: setOf(
-			"model", "query", "documents", "top_n", "return_documents", "max_chunks_per_doc", "user",
-		),
-		UnsupportedText: "unsupported field for rerank",
+		Path: "/v1/rerank",
 	},
 }
 
@@ -195,13 +167,7 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 		return
 	}
 
-	raw, err := validateSupportedFields(body, policy.AllowedFields, policy.UnsupportedText)
-	if err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
-		return
-	}
-
-	reqModel, err := extractModel(raw, policy.RequireModel)
+	reqModel, stream, err := extractModelAndStream(body)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
@@ -210,16 +176,6 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 	rt, upstreamModel, err := g.matchRoute(reqModel)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
-		return
-	}
-
-	stream, err := extractStream(raw)
-	if err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
-		return
-	}
-	if stream && !policy.AllowStream {
-		writeErr(w, http.StatusBadRequest, "invalid_request_error", "stream is not supported for this endpoint")
 		return
 	}
 
@@ -268,44 +224,26 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 	proxyBuffer(w, upResp)
 }
 
-func validateSupportedFields(body []byte, allowed map[string]struct{}, messagePrefix string) (map[string]json.RawMessage, error) {
+func extractModelAndStream(body []byte) (string, bool, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, fmt.Errorf("invalid JSON")
-	}
-	for k := range raw {
-		if _, ok := allowed[k]; !ok {
-			return nil, fmt.Errorf("%s: %s", messagePrefix, k)
-		}
-	}
-	return raw, nil
-}
-
-func extractModel(raw map[string]json.RawMessage, required bool) (string, error) {
-	if !required {
-		return "", nil
+		return "", false, fmt.Errorf("invalid JSON")
 	}
 	v, ok := raw["model"]
 	if !ok {
-		return "", fmt.Errorf("model is required")
+		return "", false, fmt.Errorf("model is required")
 	}
 	var model string
 	if err := json.Unmarshal(v, &model); err != nil || strings.TrimSpace(model) == "" {
-		return "", fmt.Errorf("model must be a non-empty string")
-	}
-	return model, nil
-}
-
-func extractStream(raw map[string]json.RawMessage) (bool, error) {
-	v, ok := raw["stream"]
-	if !ok {
-		return false, nil
+		return "", false, fmt.Errorf("model must be a non-empty string")
 	}
 	var stream bool
-	if err := json.Unmarshal(v, &stream); err != nil {
-		return false, fmt.Errorf("stream must be boolean")
+	if sv, ok := raw["stream"]; ok {
+		if err := json.Unmarshal(sv, &stream); err != nil {
+			return "", false, fmt.Errorf("stream must be boolean")
+		}
 	}
-	return stream, nil
+	return model, stream, nil
 }
 
 func (g *Gateway) matchRoute(model string) (Route, string, error) {
@@ -460,12 +398,4 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
-}
-
-func setOf(items ...string) map[string]struct{} {
-	m := make(map[string]struct{}, len(items))
-	for _, it := range items {
-		m[it] = struct{}{}
-	}
-	return m
 }

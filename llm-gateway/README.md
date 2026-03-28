@@ -11,7 +11,7 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 - `api_key_env` が未設定または空の場合、受信した `Authorization` ヘッダをそのまま上流へ転送
 - ストリーミング時は upstream を pass-through し、`Flush()` で逐次送信
 - クライアント切断時は `context` で upstream を即 cancel
-- 未対応パラメータは 400 で明示（`chat/completions` の `extra_body` は例外的に上流へ透過）
+- 基本は上流へそのまま透過するシンプルな proxy（`chat/completions` の `extra_body` は展開して転送）
 
 ## 対応 API
 - `GET /v1/models`

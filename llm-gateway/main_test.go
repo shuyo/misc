@@ -1,18 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 )
 
-func TestExtractStream(t *testing.T) {
-	raw, err := validateSupportedFields([]byte(`{"model":"openai/gpt-4.1-mini","stream":true}`), endpointPolicies["chat_completions"].AllowedFields, "x")
+func TestExtractModelAndStream(t *testing.T) {
+	model, stream, err := extractModelAndStream([]byte(`{"model":"openai/gpt-4.1-mini","stream":true}`))
 	if err != nil {
-		t.Fatalf("validate: %v", err)
+		t.Fatalf("extractModelAndStream: %v", err)
 	}
-	stream, err := extractStream(raw)
-	if err != nil {
-		t.Fatalf("extract stream: %v", err)
+	if model != "openai/gpt-4.1-mini" {
+		t.Fatalf("unexpected model: %s", model)
 	}
 	if !stream {
 		t.Fatalf("expected stream true")
@@ -39,21 +39,14 @@ func TestMatchRoute(t *testing.T) {
 	}
 }
 
-func TestValidateUnsupportedField(t *testing.T) {
-	_, err := validateSupportedFields([]byte(`{"model":"x","foo":1}`), endpointPolicies["embeddings"].AllowedFields, "unsupported field for embeddings")
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-}
-
 func TestExpandExtraBody(t *testing.T) {
 	merged, err := expandExtraBody([]byte(`{"model":"openai/gpt-4.1-mini","messages":[],"extra_body":{"foo":1,"bar":"x"}}`))
 	if err != nil {
 		t.Fatalf("expand extra_body: %v", err)
 	}
-	raw, err := validateSupportedFields(merged, setOf("model", "messages", "foo", "bar"), "x")
-	if err != nil {
-		t.Fatalf("validate merged body: %v", err)
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(merged, &raw); err != nil {
+		t.Fatalf("unmarshal merged body: %v", err)
 	}
 	if _, ok := raw["foo"]; !ok {
 		t.Fatalf("expected merged field foo")
