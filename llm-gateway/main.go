@@ -56,6 +56,9 @@ var endpointPolicies = map[string]endpointPolicy{
 	"rerank": {
 		Path: "/v1/rerank",
 	},
+	"rerank_v2": {
+		Path: "/v2/rerank",
+	},
 }
 
 func main() {
@@ -84,6 +87,7 @@ func main() {
 	mux.HandleFunc("/v1/completions", g.wrapProxy("completions"))
 	mux.HandleFunc("/v1/embeddings", g.wrapProxy("embeddings"))
 	mux.HandleFunc("/v1/rerank", g.wrapProxy("rerank"))
+	mux.HandleFunc("/v2/rerank", g.wrapProxy("rerank_v2"))
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,

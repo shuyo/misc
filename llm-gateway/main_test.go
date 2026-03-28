@@ -116,3 +116,13 @@ func TestApplyAuthorizationHeaderFallbackToInbound(t *testing.T) {
 		t.Fatalf("unexpected authorization header: %s", got)
 	}
 }
+
+func TestRerankV2Policy(t *testing.T) {
+	p, ok := endpointPolicies["rerank_v2"]
+	if !ok {
+		t.Fatalf("rerank_v2 policy not found")
+	}
+	if p.Path != "/v2/rerank" {
+		t.Fatalf("unexpected rerank_v2 path: %s", p.Path)
+	}
+}

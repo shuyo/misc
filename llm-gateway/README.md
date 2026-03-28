@@ -19,6 +19,7 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 - `POST /v1/completions`
 - `POST /v1/embeddings`
 - `POST /v1/rerank`
+- `POST /v2/rerank`
 
 ## 使い方
 ```bash
@@ -65,6 +66,15 @@ curl -s http://localhost:8080/v1/embeddings \
   -d '{"model":"openai/text-embedding-3-large","input":"hello"}'
 
 curl -s http://localhost:8080/v1/rerank \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model":"openai/rerank-v1",
+    "query":"supply chain",
+    "documents":["doc1","doc2"],
+    "top_n":1
+  }'
+
+curl -s http://localhost:8080/v2/rerank \
   -H 'Content-Type: application/json' \
   -d '{
     "model":"openai/rerank-v1",
