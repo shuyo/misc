@@ -42,3 +42,23 @@ func TestValidateUnsupportedField(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 }
+
+func TestExpandExtraBody(t *testing.T) {
+	merged, err := expandExtraBody([]byte(`{"model":"openai/gpt-4.1-mini","messages":[],"extra_body":{"foo":1,"bar":"x"}}`))
+	if err != nil {
+		t.Fatalf("expand extra_body: %v", err)
+	}
+	raw, err := validateSupportedFields(merged, setOf("model", "messages", "foo", "bar"), "x")
+	if err != nil {
+		t.Fatalf("validate merged body: %v", err)
+	}
+	if _, ok := raw["foo"]; !ok {
+		t.Fatalf("expected merged field foo")
+	}
+	if _, ok := raw["bar"]; !ok {
+		t.Fatalf("expected merged field bar")
+	}
+	if _, ok := raw["extra_body"]; ok {
+		t.Fatalf("extra_body should be removed after merge")
+	}
+}

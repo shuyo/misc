@@ -39,6 +39,7 @@ type Gateway struct {
 type endpointPolicy struct {
 	Path            string
 	AllowStream     bool
+	AllowExtraBody  bool
 	RequireModel    bool
 	AllowedFields   map[string]struct{}
 	UnsupportedText string
@@ -46,11 +47,12 @@ type endpointPolicy struct {
 
 var endpointPolicies = map[string]endpointPolicy{
 	"chat_completions": {
-		Path:         "/v1/chat/completions",
-		AllowStream:  true,
-		RequireModel: true,
+		Path:           "/v1/chat/completions",
+		AllowStream:    true,
+		AllowExtraBody: true,
+		RequireModel:   true,
 		AllowedFields: setOf(
-			"model", "messages", "stream", "temperature", "top_p", "max_tokens", "presence_penalty", "frequency_penalty", "stop", "n", "user",
+			"model", "messages", "stream", "temperature", "top_p", "max_tokens", "presence_penalty", "frequency_penalty", "stop", "n", "user", "extra_body",
 		),
 		UnsupportedText: "unsupported field for chat/completions",
 	},
@@ -220,7 +222,16 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 		return
 	}
 
-	patchedBody, err := replaceModel(body, upstreamModel)
+	bodyForUpstream := body
+	if policy.AllowExtraBody {
+		bodyForUpstream, err = expandExtraBody(body)
+		if err != nil {
+			writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+			return
+		}
+	}
+
+	patchedBody, err := replaceModel(bodyForUpstream, upstreamModel)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", "invalid model payload")
 		return
@@ -308,6 +319,29 @@ func (g *Gateway) matchRoute(model string) (Route, string, error) {
 		}
 	}
 	return Route{}, "", fmt.Errorf("unsupported model: %s", model)
+}
+
+func expandExtraBody(body []byte) ([]byte, error) {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, fmt.Errorf("invalid JSON")
+	}
+	extraRaw, ok := raw["extra_body"]
+	if !ok {
+		return body, nil
+	}
+	var extra map[string]json.RawMessage
+	if err := json.Unmarshal(extraRaw, &extra); err != nil {
+		return nil, fmt.Errorf("extra_body must be a JSON object")
+	}
+	for k, v := range extra {
+		if _, exists := raw[k]; exists {
+			continue
+		}
+		raw[k] = v
+	}
+	delete(raw, "extra_body")
+	return json.Marshal(raw)
 }
 
 func replaceModel(body []byte, model string) ([]byte, error) {

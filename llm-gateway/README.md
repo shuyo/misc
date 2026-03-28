@@ -7,7 +7,7 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 - `model` prefix ルーティングで複数上流サービスを集約
 - ストリーミング時は upstream を pass-through し、`Flush()` で逐次送信
 - クライアント切断時は `context` で upstream を即 cancel
-- 未対応パラメータは 400 で明示
+- 未対応パラメータは 400 で明示（`chat/completions` の `extra_body` は例外的に上流へ透過）
 
 ## 対応 API
 - `GET /v1/models`
@@ -45,6 +45,15 @@ curl -N http://localhost:8080/v1/chat/completions \
     "model": "openai/gpt-4.1-mini",
     "messages": [{"role":"user","content":"hello"}],
     "stream": true
+  }'
+
+# extra_body を使ってプロバイダ固有パラメータを透過
+curl -N http://localhost:8080/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role":"user","content":"hello"}],
+    "extra_body": {"reasoning": {"effort": "medium"}}
   }'
 
 curl -s http://localhost:8080/v1/embeddings \
