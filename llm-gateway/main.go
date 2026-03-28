@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+const maxBodyBytes = 4 * 1024 * 1024
+
 type Config struct {
 	Listen string  `json:"listen"`
 	Routes []Route `json:"routes"`
@@ -32,6 +34,53 @@ type Route struct {
 type Gateway struct {
 	cfg    Config
 	client *http.Client
+}
+
+type endpointPolicy struct {
+	Path            string
+	AllowStream     bool
+	RequireModel    bool
+	AllowedFields   map[string]struct{}
+	UnsupportedText string
+}
+
+var endpointPolicies = map[string]endpointPolicy{
+	"chat_completions": {
+		Path:         "/v1/chat/completions",
+		AllowStream:  true,
+		RequireModel: true,
+		AllowedFields: setOf(
+			"model", "messages", "stream", "temperature", "top_p", "max_tokens", "presence_penalty", "frequency_penalty", "stop", "n", "user",
+		),
+		UnsupportedText: "unsupported field for chat/completions",
+	},
+	"completions": {
+		Path:         "/v1/completions",
+		AllowStream:  true,
+		RequireModel: true,
+		AllowedFields: setOf(
+			"model", "prompt", "suffix", "max_tokens", "temperature", "top_p", "n", "stream", "logprobs", "echo", "stop", "presence_penalty", "frequency_penalty", "best_of", "logit_bias", "user",
+		),
+		UnsupportedText: "unsupported field for completions",
+	},
+	"embeddings": {
+		Path:         "/v1/embeddings",
+		AllowStream:  false,
+		RequireModel: true,
+		AllowedFields: setOf(
+			"model", "input", "encoding_format", "dimensions", "user",
+		),
+		UnsupportedText: "unsupported field for embeddings",
+	},
+	"rerank": {
+		Path:         "/v1/rerank",
+		AllowStream:  false,
+		RequireModel: true,
+		AllowedFields: setOf(
+			"model", "query", "documents", "top_n", "return_documents", "max_chunks_per_doc", "user",
+		),
+		UnsupportedText: "unsupported field for rerank",
+	},
 }
 
 func main() {
@@ -56,7 +105,10 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 	mux.HandleFunc("/v1/models", g.handleModels)
-	mux.HandleFunc("/v1/chat/completions", g.handleChatCompletions)
+	mux.HandleFunc("/v1/chat/completions", g.wrapProxy("chat_completions"))
+	mux.HandleFunc("/v1/completions", g.wrapProxy("completions"))
+	mux.HandleFunc("/v1/embeddings", g.wrapProxy("embeddings"))
+	mux.HandleFunc("/v1/rerank", g.wrapProxy("rerank"))
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
@@ -70,6 +122,16 @@ func main() {
 	log.Printf("listening on %s", cfg.Listen)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("listen: %v", err)
+	}
+}
+
+func (g *Gateway) wrapProxy(policyName string) http.HandlerFunc {
+	policy, ok := endpointPolicies[policyName]
+	if !ok {
+		panic("invalid endpoint policy")
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		g.handleOpenAIProxy(w, r, policy)
 	}
 }
 
@@ -118,39 +180,43 @@ func (g *Gateway) handleModels(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (g *Gateway) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
+func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, policy endpointPolicy) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	body, err := io.ReadAll(io.LimitReader(r.Body, 4*1024*1024))
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes))
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", "failed to read request body")
 		return
 	}
 
-	if err := validateSupportedFields(body); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
-		return
-	}
-
-	var req struct {
-		Model  string `json:"model"`
-		Stream bool   `json:"stream"`
-	}
-	if err := json.Unmarshal(body, &req); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_request_error", "invalid JSON")
-		return
-	}
-	if req.Model == "" {
-		writeErr(w, http.StatusBadRequest, "invalid_request_error", "model is required")
-		return
-	}
-
-	rt, upstreamModel, err := g.matchRoute(req.Model)
+	raw, err := validateSupportedFields(body, policy.AllowedFields, policy.UnsupportedText)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	}
+
+	reqModel, err := extractModel(raw, policy.RequireModel)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	}
+
+	rt, upstreamModel, err := g.matchRoute(reqModel)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	}
+
+	stream, err := extractStream(raw)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	}
+	if stream && !policy.AllowStream {
+		writeErr(w, http.StatusBadRequest, "invalid_request_error", "stream is not supported for this endpoint")
 		return
 	}
 
@@ -163,7 +229,7 @@ func (g *Gateway) handleChatCompletions(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
-	upstreamURL := strings.TrimRight(rt.BaseURL, "/") + "/v1/chat/completions"
+	upstreamURL := strings.TrimRight(rt.BaseURL, "/") + policy.Path
 	upReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, bytes.NewReader(patchedBody))
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "server_error", "failed to build upstream request")
@@ -183,37 +249,51 @@ func (g *Gateway) handleChatCompletions(w http.ResponseWriter, r *http.Request) 
 	}
 	defer upResp.Body.Close()
 
-	if req.Stream {
+	if stream {
 		proxyStream(w, upResp)
 		return
 	}
 	proxyBuffer(w, upResp)
 }
 
-func validateSupportedFields(body []byte) error {
+func validateSupportedFields(body []byte, allowed map[string]struct{}, messagePrefix string) (map[string]json.RawMessage, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return fmt.Errorf("invalid JSON")
-	}
-	allowed := map[string]struct{}{
-		"model":             {},
-		"messages":          {},
-		"stream":            {},
-		"temperature":       {},
-		"top_p":             {},
-		"max_tokens":        {},
-		"presence_penalty":  {},
-		"frequency_penalty": {},
-		"stop":              {},
-		"n":                 {},
-		"user":              {},
+		return nil, fmt.Errorf("invalid JSON")
 	}
 	for k := range raw {
 		if _, ok := allowed[k]; !ok {
-			return fmt.Errorf("unsupported field: %s", k)
+			return nil, fmt.Errorf("%s: %s", messagePrefix, k)
 		}
 	}
-	return nil
+	return raw, nil
+}
+
+func extractModel(raw map[string]json.RawMessage, required bool) (string, error) {
+	if !required {
+		return "", nil
+	}
+	v, ok := raw["model"]
+	if !ok {
+		return "", fmt.Errorf("model is required")
+	}
+	var model string
+	if err := json.Unmarshal(v, &model); err != nil || strings.TrimSpace(model) == "" {
+		return "", fmt.Errorf("model must be a non-empty string")
+	}
+	return model, nil
+}
+
+func extractStream(raw map[string]json.RawMessage) (bool, error) {
+	v, ok := raw["stream"]
+	if !ok {
+		return false, nil
+	}
+	var stream bool
+	if err := json.Unmarshal(v, &stream); err != nil {
+		return false, fmt.Errorf("stream must be boolean")
+	}
+	return stream, nil
 }
 
 func (g *Gateway) matchRoute(model string) (Route, string, error) {
@@ -293,4 +373,12 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+func setOf(items ...string) map[string]struct{} {
+	m := make(map[string]struct{}, len(items))
+	for _, it := range items {
+		m[it] = struct{}{}
+	}
+	return m
 }

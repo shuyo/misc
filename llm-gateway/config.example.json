@@ -5,9 +5,13 @@
       "name": "openai",
       "base_url": "https://api.openai.com",
       "api_key_env": "OPENAI_API_KEY",
-      "model_prefixes": ["openai/", "gpt-"],
+      "model_prefixes": ["openai/", "gpt-", "text-embedding-", "rerank-"],
       "strip_prefix": "openai/",
-      "models": ["openai/gpt-4.1-mini", "gpt-4.1-mini"]
+      "models": [
+        "openai/gpt-4.1-mini",
+        "openai/text-embedding-3-large",
+        "openai/rerank-v1"
+      ]
     },
     {
       "name": "anthropic",
@@ -15,7 +19,7 @@
       "api_key_env": "ANTHROPIC_API_KEY",
       "model_prefixes": ["anthropic/", "claude-"],
       "strip_prefix": "anthropic/",
-      "models": ["anthropic/claude-3-7-sonnet-latest", "claude-3-7-sonnet-latest"]
+      "models": ["anthropic/claude-3-7-sonnet-latest"]
     }
   ]
 }
