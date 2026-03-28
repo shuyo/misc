@@ -311,14 +311,35 @@ func (g *Gateway) matchRoute(model string) (Route, string, error) {
 	for _, rt := range g.cfg.Routes {
 		for _, p := range rt.ModelPrefixes {
 			if strings.HasPrefix(model, p) {
-				if rt.StripPrefix != "" && strings.HasPrefix(model, rt.StripPrefix) {
-					return rt, strings.TrimPrefix(model, rt.StripPrefix), nil
-				}
-				return rt, model, nil
+				return rt, normalizeModelForUpstream(rt, model), nil
 			}
 		}
 	}
+
+	for _, rt := range g.cfg.Routes {
+		for _, declared := range rt.Models {
+			if model == declared {
+				return rt, normalizeModelForUpstream(rt, model), nil
+			}
+			if model == normalizeModelForUpstream(rt, declared) {
+				return rt, normalizeModelForUpstream(rt, model), nil
+			}
+		}
+	}
+
+	if len(g.cfg.Routes) == 1 {
+		rt := g.cfg.Routes[0]
+		return rt, normalizeModelForUpstream(rt, model), nil
+	}
+
 	return Route{}, "", fmt.Errorf("unsupported model: %s", model)
+}
+
+func normalizeModelForUpstream(rt Route, model string) string {
+	if rt.StripPrefix != "" && strings.HasPrefix(model, rt.StripPrefix) {
+		return strings.TrimPrefix(model, rt.StripPrefix)
+	}
+	return model
 }
 
 func expandExtraBody(body []byte) ([]byte, error) {

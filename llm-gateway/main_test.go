@@ -62,3 +62,41 @@ func TestExpandExtraBody(t *testing.T) {
 		t.Fatalf("extra_body should be removed after merge")
 	}
 }
+
+func TestMatchRouteByExactDeclaredModel(t *testing.T) {
+	g := &Gateway{cfg: Config{Routes: []Route{{
+		Name:          "vllm",
+		BaseURL:       "http://127.0.0.1:8001",
+		ModelPrefixes: []string{"vllm/"},
+		Models:        []string{"Qwen3-0.6B"},
+	}}}}
+
+	rt, upstream, err := g.matchRoute("Qwen3-0.6B")
+	if err != nil {
+		t.Fatalf("match route: %v", err)
+	}
+	if rt.Name != "vllm" {
+		t.Fatalf("unexpected route: %s", rt.Name)
+	}
+	if upstream != "Qwen3-0.6B" {
+		t.Fatalf("unexpected upstream model: %s", upstream)
+	}
+}
+
+func TestMatchRouteSingleRouteFallback(t *testing.T) {
+	g := &Gateway{cfg: Config{Routes: []Route{{
+		Name:    "vllm",
+		BaseURL: "http://127.0.0.1:8001",
+	}}}}
+
+	rt, upstream, err := g.matchRoute("Any-Model-Name")
+	if err != nil {
+		t.Fatalf("match route fallback: %v", err)
+	}
+	if rt.Name != "vllm" {
+		t.Fatalf("unexpected route: %s", rt.Name)
+	}
+	if upstream != "Any-Model-Name" {
+		t.Fatalf("unexpected upstream model: %s", upstream)
+	}
+}
