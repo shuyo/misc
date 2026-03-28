@@ -24,6 +24,17 @@ export ANTHROPIC_API_KEY=...
 go run . -config ./config.json
 ```
 
+
+## Docker (multi-stage build)
+```bash
+docker build -t llm-gateway:local .
+docker run --rm -p 8080:8080 \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -v $(pwd)/config.json:/app/config.json:ro \
+  llm-gateway:local
+```
+
 ## 例
 ```bash
 curl -s http://localhost:8080/v1/models
