@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -240,22 +241,22 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
-	upstreamURL := strings.TrimRight(rt.BaseURL, "/") + policy.Path
+	upstreamURL, err := buildUpstreamURL(rt.BaseURL, policy.Path)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	}
 	upReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, bytes.NewReader(patchedBody))
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "server_error", "failed to build upstream request")
 		return
 	}
 	upReq.Header.Set("Content-Type", "application/json")
-	if rt.APIKeyEnv != "" {
-		if key := strings.TrimSpace(os.Getenv(rt.APIKeyEnv)); key != "" {
-			upReq.Header.Set("Authorization", "Bearer "+key)
-		}
-	}
+	applyAuthorizationHeader(upReq, r, rt)
 
 	upResp, err := g.client.Do(upReq)
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "upstream_error", "failed to call upstream")
+		writeErr(w, http.StatusBadGateway, "upstream_error", fmt.Sprintf("failed to call upstream: %v", err))
 		return
 	}
 	defer upResp.Body.Close()
@@ -363,6 +364,37 @@ func expandExtraBody(body []byte) ([]byte, error) {
 	}
 	delete(raw, "extra_body")
 	return json.Marshal(raw)
+}
+
+func buildUpstreamURL(baseURL, path string) (string, error) {
+	base := strings.TrimSpace(baseURL)
+	if base == "" {
+		return "", fmt.Errorf("route base_url is required")
+	}
+	if !strings.Contains(base, "://") {
+		base = "http://" + base
+	}
+	u, err := url.Parse(base)
+	if err != nil {
+		return "", fmt.Errorf("invalid route base_url: %w", err)
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return "", fmt.Errorf("invalid route base_url: %s", baseURL)
+	}
+	u.Path = ""
+	return strings.TrimRight(u.String(), "/") + path, nil
+}
+
+func applyAuthorizationHeader(upReq *http.Request, inbound *http.Request, rt Route) {
+	if rt.APIKeyEnv != "" {
+		if key := strings.TrimSpace(os.Getenv(rt.APIKeyEnv)); key != "" {
+			upReq.Header.Set("Authorization", "Bearer "+key)
+			return
+		}
+	}
+	if auth := strings.TrimSpace(inbound.Header.Get("Authorization")); auth != "" {
+		upReq.Header.Set("Authorization", auth)
+	}
 }
 
 func replaceModel(body []byte, model string) ([]byte, error) {

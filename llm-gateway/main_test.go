@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"net/http"
+	"testing"
+)
 
 func TestExtractStream(t *testing.T) {
 	raw, err := validateSupportedFields([]byte(`{"model":"openai/gpt-4.1-mini","stream":true}`), endpointPolicies["chat_completions"].AllowedFields, "x")
@@ -98,5 +101,25 @@ func TestMatchRouteSingleRouteFallback(t *testing.T) {
 	}
 	if upstream != "Any-Model-Name" {
 		t.Fatalf("unexpected upstream model: %s", upstream)
+	}
+}
+
+func TestBuildUpstreamURLWithoutScheme(t *testing.T) {
+	u, err := buildUpstreamURL("127.0.0.1:8000", "/v1/chat/completions")
+	if err != nil {
+		t.Fatalf("buildUpstreamURL: %v", err)
+	}
+	if u != "http://127.0.0.1:8000/v1/chat/completions" {
+		t.Fatalf("unexpected upstream url: %s", u)
+	}
+}
+
+func TestApplyAuthorizationHeaderFallbackToInbound(t *testing.T) {
+	upReq, _ := http.NewRequest("POST", "http://example.com", nil)
+	inReq, _ := http.NewRequest("POST", "http://localhost", nil)
+	inReq.Header.Set("Authorization", "Bearer inbound-token")
+	applyAuthorizationHeader(upReq, inReq, Route{})
+	if got := upReq.Header.Get("Authorization"); got != "Bearer inbound-token" {
+		t.Fatalf("unexpected authorization header: %s", got)
 	}
 }
