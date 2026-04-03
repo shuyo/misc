@@ -12,6 +12,13 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 - 基本は上流へそのまま透過するシンプルな proxy（`extra_body` の特別処理なし）
 `routes[]` で使用するキーは `base_url`, `api_key_env`, `models` のみです（`name` / `strip_prefix` は使いません）。
 
+## 開発時の検証
+```bash
+make verify
+```
+
+`make verify` は `gofmt`・`go test`・Linux 向け `go build` を順に実行します。
+
 docker build -t llm-proxy:local .
   llm-proxy:local
 ```bash

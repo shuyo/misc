@@ -7,7 +7,8 @@ COPY go.mod ./
 RUN go mod download
 
 COPY main.go ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w' -o /out/llm-proxy ./main.go
+RUN gofmt -w main.go && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w' -o /out/llm-proxy .
 
 FROM scratch
 WORKDIR /app
