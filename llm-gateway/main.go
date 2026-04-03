@@ -172,11 +172,14 @@ func normalizeModelForUpstream(rt Route, model string) string {
 	if rt.StripPrefix != "" && strings.HasPrefix(model, rt.StripPrefix) {
 		return strings.TrimPrefix(model, rt.StripPrefix)
 	}
-	return model
-}
 
-func expandExtraBody(body []byte) ([]byte, error) {
-	var raw map[string]json.RawMessage
+	modelRaw, ok := raw["model"]
+
+	if err := json.Unmarshal(modelRaw, &model); err != nil || strings.TrimSpace(model) == "" {
+
+	if streamRaw, ok := raw["stream"]; ok {
+		if err := json.Unmarshal(streamRaw, &stream); err != nil {
+
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, fmt.Errorf("invalid JSON")
 	}
