@@ -1,59 +1,18 @@
 package main
 
 import (
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
+		BaseURL: "https://api.openai.com",
+		Models:  []string{"openai/gpt-4.1-mini"},
+	_, err := g.matchRoute("openai/gpt-4.1-mini")
 
-func TestExtractModelAndStream(t *testing.T) {
-	model, stream, err := extractModelAndStream([]byte(`{"model":"openai/gpt-4.1-mini","stream":true}`))
-	if err != nil {
-		t.Fatalf("extractModelAndStream: %v", err)
-	}
-	if model != "openai/gpt-4.1-mini" {
-		t.Fatalf("unexpected model: %s", model)
-	}
-	if !stream {
-		t.Fatalf("expected stream true")
-	}
-}
-
-func TestMatchRoute(t *testing.T) {
-	g := &Gateway{cfg: Config{Routes: []Route{{
-		Name:        "openai",
-		BaseURL:     "https://api.openai.com",
-		StripPrefix: "openai/",
-		Models:      []string{"openai/gpt-4.1-mini"},
-	}}}}
-
-	rt, upstream, err := g.matchRoute("openai/gpt-4.1-mini")
+	_, err := g.matchRoute("Qwen3-0.6B")
 	if err != nil {
 		t.Fatalf("match route: %v", err)
 	}
-	if rt.Name != "openai" {
-		t.Fatalf("unexpected route: %s", rt.Name)
-	}
-	if upstream != "gpt-4.1-mini" {
-		t.Fatalf("unexpected upstream model: %s", upstream)
-	}
-}
-
-func TestExpandExtraBody(t *testing.T) {
-	merged, err := expandExtraBody([]byte(`{"model":"openai/gpt-4.1-mini","messages":[],"extra_body":{"foo":1,"bar":"x"}}`))
-	if err != nil {
-		t.Fatalf("expand extra_body: %v", err)
-	}
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(merged, &raw); err != nil {
-		t.Fatalf("unmarshal merged body: %v", err)
-	}
-	if _, ok := raw["foo"]; !ok {
-		t.Fatalf("expected merged field foo")
-	}
+	_, err := g.matchRoute("Any-Model-Name")
+func TestRerankV2PathAllowed(t *testing.T) {
+	_, ok := proxyPostPaths["/v2/rerank"]
+		t.Fatalf("/v2/rerank should be in allowed proxy paths")
 	if _, ok := raw["bar"]; !ok {
 		t.Fatalf("expected merged field bar")
 	}

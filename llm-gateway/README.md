@@ -5,24 +5,15 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 ## 特徴
 - Go 標準ライブラリのみ（外部パッケージ依存なし）
 - `routes[].models` の**完全一致のみ**でルーティング（prefix マッチやフォールバックなし）
-- `base_url` は `http://` / `https://` 省略時に自動で `http://` を補完
+- `base_url` は `http://` / `https://` を付けて設定（そのまま上流に転送）
 - `api_key_env` が未設定または空の場合、受信した `Authorization` ヘッダをそのまま上流へ転送
 - ストリーミング時は upstream を pass-through し、`Flush()` で逐次送信
 - クライアント切断時は `context` で upstream を即 cancel
-- 基本は上流へそのまま透過するシンプルな proxy（`chat/completions` の `extra_body` は展開して転送）
-`routes[]` で使用するキーは `base_url`, `api_key_env`, `strip_prefix`, `models` のみです（`name` は使いません）。
+- 基本は上流へそのまま透過するシンプルな proxy（`extra_body` の特別処理なし）
+`routes[]` で使用するキーは `base_url`, `api_key_env`, `models` のみです（`name` / `strip_prefix` は使いません）。
 
 docker build -t llm-proxy:local .
   llm-proxy:local
-## 対応 API
-- `GET /v1/models`
-- `POST /v1/chat/completions`
-- `POST /v1/completions`
-- `POST /v1/embeddings`
-- `POST /v1/rerank`
-- `POST /v2/rerank`
-
-## 使い方
 ```bash
 cp config.example.json config.json
 export OPENAI_API_KEY=...

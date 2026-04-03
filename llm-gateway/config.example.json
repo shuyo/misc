@@ -2,8 +2,6 @@
   "listen": ":8080",
   "routes": [
     {
-      "name": "openai",
-      "base_url": "https://api.openai.com",
       "api_key_env": "OPENAI_API_KEY",
       "strip_prefix": "openai/",
       "models": [

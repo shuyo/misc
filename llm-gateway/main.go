@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -24,138 +23,35 @@ type Config struct {
 }
 
 type Route struct {
-	Name        string   `json:"name"`
-	BaseURL     string   `json:"base_url"`
-	APIKeyEnv   string   `json:"api_key_env"`
-	StripPrefix string   `json:"strip_prefix"`
-	Models      []string `json:"models"`
-}
-
-type Gateway struct {
-	cfg    Config
-	client *http.Client
-}
-
-type endpointPolicy struct {
-	Path           string
-	AllowExtraBody bool
-}
-
-var endpointPolicies = map[string]endpointPolicy{
-	"chat_completions": {
-		Path:           "/v1/chat/completions",
-		AllowExtraBody: true,
-	},
-	"completions": {
-		Path: "/v1/completions",
-	},
-	"embeddings": {
-		Path: "/v1/embeddings",
-	},
-	"rerank": {
-		Path: "/v1/rerank",
-	},
-	"rerank_v2": {
-		Path: "/v2/rerank",
-	},
-}
-
-func main() {
-	configPath := flag.String("config", "./config.json", "path to config file")
-	flag.Parse()
-
-	cfg, err := loadConfig(*configPath)
+	BaseURL   string   `json:"base_url"`
+	APIKeyEnv string   `json:"api_key_env"`
+	Models    []string `json:"models"`
+var proxyPostPaths = map[string]struct{}{
+	"/v1/chat/completions": {},
+	"/v1/completions":      {},
+	"/v1/embeddings":       {},
+	"/v1/rerank":           {},
+	"/v2/rerank":           {},
+	mux.HandleFunc("/v1/chat/completions", g.handleOpenAIProxy)
+	mux.HandleFunc("/v1/completions", g.handleOpenAIProxy)
+	mux.HandleFunc("/v1/embeddings", g.handleOpenAIProxy)
+	mux.HandleFunc("/v1/rerank", g.handleOpenAIProxy)
+	mux.HandleFunc("/v2/rerank", g.handleOpenAIProxy)
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request) {
+	}
+	if _, ok := proxyPostPaths[r.URL.Path]; !ok {
+		http.NotFound(w, r)
+		return
 	}
 
-	g := &Gateway{
-		cfg: cfg,
-		client: &http.Client{
-			Timeout: 0,
-		},
-	}
+	rt, err := g.matchRoute(reqModel)
+	upstreamURL := strings.TrimRight(rt.BaseURL, "/") + r.URL.Path
+	upReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, bytes.NewReader(body))
+func (g *Gateway) matchRoute(model string) (Route, error) {
+				return rt, nil
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("/v1/models", g.handleModels)
-	mux.HandleFunc("/v1/chat/completions", g.wrapProxy("chat_completions"))
-	mux.HandleFunc("/v1/completions", g.wrapProxy("completions"))
-	mux.HandleFunc("/v1/embeddings", g.wrapProxy("embeddings"))
-	mux.HandleFunc("/v1/rerank", g.wrapProxy("rerank"))
-	mux.HandleFunc("/v2/rerank", g.wrapProxy("rerank_v2"))
-
-	srv := &http.Server{
-		Addr:              cfg.Listen,
-		Handler:           mux,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      0,
-		IdleTimeout:       120 * time.Second,
-	}
-
-	log.Printf("listening on %s", cfg.Listen)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("listen: %v", err)
-	}
-}
-
-func (g *Gateway) wrapProxy(policyName string) http.HandlerFunc {
-	policy, ok := endpointPolicies[policyName]
-	if !ok {
-		panic("invalid endpoint policy")
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		g.handleOpenAIProxy(w, r, policy)
-	}
-}
-
-func loadConfig(path string) (Config, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return Config{}, err
-	}
-	var cfg Config
-	if err := json.Unmarshal(b, &cfg); err != nil {
-		return Config{}, err
-	}
-	if cfg.Listen == "" {
-		cfg.Listen = ":8080"
-	}
-	if len(cfg.Routes) == 0 {
-		return Config{}, fmt.Errorf("routes is required")
-	}
-	return cfg, nil
-}
-
-func (g *Gateway) handleModels(w http.ResponseWriter, _ *http.Request) {
-	type modelObj struct {
-		ID     string `json:"id"`
-		Object string `json:"object"`
-	}
-	resp := struct {
-		Object string     `json:"object"`
-		Data   []modelObj `json:"data"`
-	}{
-		Object: "list",
-		Data:   make([]modelObj, 0, 8),
-	}
-
-	seen := map[string]struct{}{}
-	for _, rt := range g.cfg.Routes {
-		for _, m := range rt.Models {
-			if _, ok := seen[m]; ok {
-				continue
-			}
-			seen[m] = struct{}{}
-			resp.Data = append(resp.Data, modelObj{ID: m, Object: "model"})
-		}
-	}
-
-	writeJSON(w, http.StatusOK, resp)
+	return Route{}, fmt.Errorf("unsupported model: %s", model)
 }
 
 func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, policy endpointPolicy) {
