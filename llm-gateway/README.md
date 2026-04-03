@@ -1,4 +1,4 @@
-# llm-gateway
+# llm-proxy
 
 OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サービスを 1 エンドポイントで扱えます。
 
@@ -12,8 +12,8 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 - 基本は上流へそのまま透過するシンプルな proxy（`chat/completions` の `extra_body` は展開して転送）
 `routes[]` で使用するキーは `base_url`, `api_key_env`, `strip_prefix`, `models` のみです（`name` は使いません）。
 
-- どの route が使われたかをレスポンスヘッダ `X-LLM-Gateway-Route` で返す（`routes[].name` を使用）
-
+docker build -t llm-proxy:local .
+  llm-proxy:local
 ## 対応 API
 - `GET /v1/models`
 - `POST /v1/chat/completions`

@@ -1,3 +1,3 @@
-module llm-gateway
+module llm-proxy
 
 go 1.22
