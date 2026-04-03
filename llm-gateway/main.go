@@ -221,10 +221,10 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 	defer upResp.Body.Close()
 
 	if stream {
-		proxyStream(w, upResp)
+		proxyStream(w, upResp, rt.Name)
 		return
 	}
-	proxyBuffer(w, upResp)
+	proxyBuffer(w, upResp, rt.Name)
 }
 
 func extractModelAndStream(body []byte) (string, bool, error) {
@@ -334,8 +334,11 @@ func replaceModel(body []byte, model string) ([]byte, error) {
 	return json.Marshal(raw)
 }
 
-func proxyStream(w http.ResponseWriter, upResp *http.Response) {
+func proxyStream(w http.ResponseWriter, upResp *http.Response, routeName string) {
 	copyHeaders(w.Header(), upResp.Header)
+	if routeName != "" {
+		w.Header().Set("X-LLM-Gateway-Route", routeName)
+	}
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(upResp.StatusCode)
 
@@ -361,8 +364,11 @@ func proxyStream(w http.ResponseWriter, upResp *http.Response) {
 	}
 }
 
-func proxyBuffer(w http.ResponseWriter, upResp *http.Response) {
+func proxyBuffer(w http.ResponseWriter, upResp *http.Response, routeName string) {
 	copyHeaders(w.Header(), upResp.Header)
+	if routeName != "" {
+		w.Header().Set("X-LLM-Gateway-Route", routeName)
+	}
 	w.WriteHeader(upResp.StatusCode)
 	_, _ = io.Copy(w, upResp.Body)
 }

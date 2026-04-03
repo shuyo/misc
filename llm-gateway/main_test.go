@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -118,5 +121,18 @@ func TestRerankV2Policy(t *testing.T) {
 	}
 	if p.Path != "/v2/rerank" {
 		t.Fatalf("unexpected rerank_v2 path: %s", p.Path)
+	}
+}
+
+func TestProxyBufferSetsRouteHeader(t *testing.T) {
+	rec := httptest.NewRecorder()
+	upResp := &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(`{"error":"x"}`)),
+	}
+	proxyBuffer(rec, upResp, "vllm")
+	if got := rec.Header().Get("X-LLM-Gateway-Route"); got != "vllm" {
+		t.Fatalf("unexpected route header: %s", got)
 	}
 }
