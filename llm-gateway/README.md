@@ -18,6 +18,7 @@ make verify
 ```
 
 `make verify` は `gofmt`・`go test`・Linux 向け `go build` を順に実行します。
+同じ手順を GitHub Actions (`.github/workflows/llm-proxy-verify.yml`) でも実行します。
 
 docker build -t llm-proxy:local .
   llm-proxy:local
