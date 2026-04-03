@@ -1,0 +1,25 @@
+name: llm-proxy verify
+
+on:
+  push:
+    paths:
+      - 'llm-gateway/**'
+      - '.github/workflows/llm-proxy-verify.yml'
+  pull_request:
+    paths:
+      - 'llm-gateway/**'
+      - '.github/workflows/llm-proxy-verify.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: llm-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Verify
+        run: make verify

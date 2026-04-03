@@ -1,0 +1,21 @@
+{
+  "listen": ":8080",
+  "routes": [
+    {
+      "api_key_env": "OPENAI_API_KEY",
+      "strip_prefix": "openai/",
+      "models": [
+        "openai/gpt-4.1-mini",
+        "openai/text-embedding-3-large",
+        "openai/rerank-v1"
+      ]
+    },
+    {
+      "name": "anthropic",
+      "base_url": "https://api.anthropic.com",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "strip_prefix": "anthropic/",
+      "models": ["anthropic/claude-3-7-sonnet-latest"]
+    }
+  ]
+}
