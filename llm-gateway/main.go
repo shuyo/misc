@@ -24,12 +24,11 @@ type Config struct {
 }
 
 type Route struct {
-	Name          string   `json:"name"`
-	BaseURL       string   `json:"base_url"`
-	APIKeyEnv     string   `json:"api_key_env"`
-	ModelPrefixes []string `json:"model_prefixes"`
-	StripPrefix   string   `json:"strip_prefix"`
-	Models        []string `json:"models"`
+	Name        string   `json:"name"`
+	BaseURL     string   `json:"base_url"`
+	APIKeyEnv   string   `json:"api_key_env"`
+	StripPrefix string   `json:"strip_prefix"`
+	Models      []string `json:"models"`
 }
 
 type Gateway struct {
@@ -252,14 +251,6 @@ func extractModelAndStream(body []byte) (string, bool, error) {
 
 func (g *Gateway) matchRoute(model string) (Route, string, error) {
 	for _, rt := range g.cfg.Routes {
-		for _, p := range rt.ModelPrefixes {
-			if strings.HasPrefix(model, p) {
-				return rt, normalizeModelForUpstream(rt, model), nil
-			}
-		}
-	}
-
-	for _, rt := range g.cfg.Routes {
 		for _, declared := range rt.Models {
 			if model == declared {
 				return rt, normalizeModelForUpstream(rt, model), nil
@@ -268,11 +259,6 @@ func (g *Gateway) matchRoute(model string) (Route, string, error) {
 				return rt, normalizeModelForUpstream(rt, model), nil
 			}
 		}
-	}
-
-	if len(g.cfg.Routes) == 1 {
-		rt := g.cfg.Routes[0]
-		return rt, normalizeModelForUpstream(rt, model), nil
 	}
 
 	return Route{}, "", fmt.Errorf("unsupported model: %s", model)

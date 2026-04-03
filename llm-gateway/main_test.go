@@ -21,10 +21,10 @@ func TestExtractModelAndStream(t *testing.T) {
 
 func TestMatchRoute(t *testing.T) {
 	g := &Gateway{cfg: Config{Routes: []Route{{
-		Name:          "openai",
-		BaseURL:       "https://api.openai.com",
-		ModelPrefixes: []string{"openai/", "gpt-"},
-		StripPrefix:   "openai/",
+		Name:        "openai",
+		BaseURL:     "https://api.openai.com",
+		StripPrefix: "openai/",
+		Models:      []string{"openai/gpt-4.1-mini"},
 	}}}}
 
 	rt, upstream, err := g.matchRoute("openai/gpt-4.1-mini")
@@ -61,10 +61,9 @@ func TestExpandExtraBody(t *testing.T) {
 
 func TestMatchRouteByExactDeclaredModel(t *testing.T) {
 	g := &Gateway{cfg: Config{Routes: []Route{{
-		Name:          "vllm",
-		BaseURL:       "http://127.0.0.1:8001",
-		ModelPrefixes: []string{"vllm/"},
-		Models:        []string{"Qwen3-0.6B"},
+		Name:    "vllm",
+		BaseURL: "http://127.0.0.1:8001",
+		Models:  []string{"Qwen3-0.6B"},
 	}}}}
 
 	rt, upstream, err := g.matchRoute("Qwen3-0.6B")
@@ -79,21 +78,16 @@ func TestMatchRouteByExactDeclaredModel(t *testing.T) {
 	}
 }
 
-func TestMatchRouteSingleRouteFallback(t *testing.T) {
+func TestMatchRouteWithoutExactMatchReturnsError(t *testing.T) {
 	g := &Gateway{cfg: Config{Routes: []Route{{
 		Name:    "vllm",
 		BaseURL: "http://127.0.0.1:8001",
+		Models:  []string{"Qwen3-0.6B"},
 	}}}}
 
-	rt, upstream, err := g.matchRoute("Any-Model-Name")
-	if err != nil {
-		t.Fatalf("match route fallback: %v", err)
-	}
-	if rt.Name != "vllm" {
-		t.Fatalf("unexpected route: %s", rt.Name)
-	}
-	if upstream != "Any-Model-Name" {
-		t.Fatalf("unexpected upstream model: %s", upstream)
+	_, _, err := g.matchRoute("Any-Model-Name")
+	if err == nil {
+		t.Fatalf("expected route matching error")
 	}
 }
 

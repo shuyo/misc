@@ -4,9 +4,7 @@ OpenAI API 互換の最小依存ゲートウェイです。複数上流 LLM サ�
 
 ## 特徴
 - Go 標準ライブラリのみ（外部パッケージ依存なし）
-- `model` prefix ルーティングで複数上流サービスを集約
-- prefix だけでなく `routes[].models` の完全一致でもルーティング可能（例: `Qwen3-0.6B`）
-- route が 1 つだけのときは未知モデル名でもその route にフォールバック
+- `routes[].models` の**完全一致のみ**でルーティング（prefix マッチやフォールバックなし）
 - `base_url` は `http://` / `https://` 省略時に自動で `http://` を補完
 - `api_key_env` が未設定または空の場合、受信した `Authorization` ヘッダをそのまま上流へ転送
 - ストリーミング時は upstream を pass-through し、`Flush()` で逐次送信
