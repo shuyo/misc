@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 		BaseURL: "https://api.openai.com",
 		Models:  []string{"openai/gpt-4.1-mini"},
 	_, err := g.matchRoute("openai/gpt-4.1-mini")
@@ -47,6 +48,20 @@ func TestMatchRouteWithoutExactMatchReturnsError(t *testing.T) {
 		Models:  []string{"Qwen3-0.6B"},
 	}}}}
 
+
+func TestLoadConfigRequiresBaseURLAndModels(t *testing.T) {
+	tmp, err := os.CreateTemp(t.TempDir(), "cfg-*.json")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	_, _ = tmp.WriteString(`{"listen":":8080","routes":[{"base_url":"","models":[]}]}`)
+	_ = tmp.Close()
+
+	_, err = loadConfig(tmp.Name())
+	if err == nil {
+		t.Fatalf("expected validation error")
+	}
+}
 	_, _, err := g.matchRoute("Any-Model-Name")
 	if err == nil {
 		t.Fatalf("expected route matching error")

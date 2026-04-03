@@ -74,6 +74,14 @@ func (g *Gateway) handleOpenAIProxy(w http.ResponseWriter, r *http.Request, poli
 
 	rt, upstreamModel, err := g.matchRoute(reqModel)
 	if err != nil {
+	for i, rt := range cfg.Routes {
+		if strings.TrimSpace(rt.BaseURL) == "" {
+			return Config{}, fmt.Errorf("routes[%d].base_url is required", i)
+		}
+		if len(rt.Models) == 0 {
+			return Config{}, fmt.Errorf("routes[%d].models is required", i)
+		}
+	}
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
 	}
